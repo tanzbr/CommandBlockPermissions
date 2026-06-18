@@ -52,9 +52,19 @@ public class CommandBlockPacketListener extends PacketAdapter {
         super(plugin, ListenerPriority.HIGHEST, PacketType.Play.Client.CUSTOM_PAYLOAD);
         this.plugin = plugin;
 
-        String packageName = plugin.getServer().getClass().getPackage().getName();
-        String serverVersion = packageName.substring(packageName.lastIndexOf('.') + 1);
-        packetDataSerializer = Class.forName("net.minecraft.server." + serverVersion + ".PacketDataSerializer").getConstructor(ByteBuf.class);
+        Class<?> pdsClass = null;
+        try {
+            pdsClass = Class.forName("net.minecraft.network.FriendlyByteBuf");
+        } catch (ClassNotFoundException e1) {
+            try {
+                pdsClass = Class.forName("net.minecraft.network.PacketDataSerializer");
+            } catch (ClassNotFoundException e2) {
+                String packageName = plugin.getServer().getClass().getPackage().getName();
+                String serverVersion = packageName.substring(packageName.lastIndexOf('.') + 1);
+                pdsClass = Class.forName("net.minecraft.server." + serverVersion + ".PacketDataSerializer");
+            }
+        }
+        packetDataSerializer = pdsClass.getConstructor(ByteBuf.class);
 
         Field commandMapField = plugin.getServer().getClass().getDeclaredField("commandMap");
         commandMapField.setAccessible(true);
